@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body {
+    @apply h-full antialiased text-slate-800 bg-slate-50;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  #root {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+/* Reglas de impresión para A4 (210mm x 297mm) */
+@page {
+  size: A4 portrait;
+  margin: 0mm;
+}
+
+@media print {
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 210mm !important;
+    height: auto !important; /* CRÍTICO: 'auto' permite paginación fluida para 1, 2 o más páginas */
+    min-height: 100% !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  #root {
+    display: block !important;
+    width: 210mm !important;
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Ocultar toda la interfaz interactiva, barras, botones y modales */
+  .no-print {
+    display: none !important;
+  }
+
+  /* Área exclusiva de impresión: se renderiza limpia, a tamaño A4 sin transforms ni scrollbars */
+  #cv-print-area {
+    display: block !important;
+    position: static !important;
+    width: 210mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
+  /* Evitar cortes indeseados dentro de un bloque en saltos de página */
+  .break-inside-avoid,
+  .page-break-inside-avoid {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  .break-after-avoid {
+    break-after: avoid !important;
+    page-break-after: avoid !important;
+  }
+}
