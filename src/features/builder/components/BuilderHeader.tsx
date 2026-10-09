@@ -1,12 +1,16 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Printer, FileText } from 'lucide-react';
+import { ArrowLeft, Printer, FileText, Save } from 'lucide-react';
 import { useCVStore } from '../../../store/cvStore';
+import { useUIStore } from '../../../store/uiStore';
+import { SaveCVModal } from './SaveCVModal';
 
 export const BuilderHeader: React.FC = () => {
   const cv = useCVStore((state) => state.cv);
   const cvTitle = useCVStore((state) => state.cv.title);
   const updateCVTitle = useCVStore((state) => state.updateCVTitle);
+  const selectedTemplateId = useUIStore((state) => state.selectedTemplateId);
+  const [isSaveModalOpen, setIsSaveModalOpen] = React.useState(false);
 
   const handlePrint = () => {
     const originalTitle = document.title;
@@ -50,6 +54,14 @@ export const BuilderHeader: React.FC = () => {
 
       <div className="flex items-center gap-2">
         <button
+          onClick={() => setIsSaveModalOpen(true)}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-1.5 text-xs font-semibold text-emerald-700 shadow-sm transition hover:bg-emerald-100 active:scale-95"
+          title="Guardar CV en la base de datos"
+        >
+          <Save size={15} />
+          <span>Guardar CV</span>
+        </button>
+        <button
           onClick={handlePrint}
           className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-sm transition active:scale-95"
           title="Exportar a PDF con calidad vectorial A4"
@@ -58,6 +70,14 @@ export const BuilderHeader: React.FC = () => {
           <span>Exportar PDF</span>
         </button>
       </div>
+
+      {isSaveModalOpen && (
+        <SaveCVModal
+          cv={cv}
+          templateId={selectedTemplateId}
+          onClose={() => setIsSaveModalOpen(false)}
+        />
+      )}
     </header>
   );
 };
