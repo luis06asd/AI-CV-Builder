@@ -1,16 +1,21 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Printer, FileText, Save } from 'lucide-react';
+import { ArrowLeft, Printer, FileText, Save, KeyRound, Plus } from 'lucide-react';
 import { useCVStore } from '../../../store/cvStore';
 import { useUIStore } from '../../../store/uiStore';
+import { clearCVAccessToken } from '../../../api/cvApi';
 import { SaveCVModal } from './SaveCVModal';
+import { AccessCVModal } from './AccessCVModal';
 
 export const BuilderHeader: React.FC = () => {
   const cv = useCVStore((state) => state.cv);
   const cvTitle = useCVStore((state) => state.cv.title);
   const updateCVTitle = useCVStore((state) => state.updateCVTitle);
+  const resetCV = useCVStore((state) => state.resetCV);
   const selectedTemplateId = useUIStore((state) => state.selectedTemplateId);
+  const resetBuilderPreferences = useUIStore((state) => state.resetBuilderPreferences);
   const [isSaveModalOpen, setIsSaveModalOpen] = React.useState(false);
+  const [isAccessModalOpen, setIsAccessModalOpen] = React.useState(false);
 
   const handlePrint = () => {
     const originalTitle = document.title;
@@ -23,6 +28,18 @@ export const BuilderHeader: React.FC = () => {
     setTimeout(() => {
       document.title = originalTitle;
     }, 1000);
+  };
+
+  const isRecoveredCV = Number.isSafeInteger(Number(cv.id)) && Number(cv.id) > 0;
+
+  const handleCreateNewCV = () => {
+    if (!window.confirm('¿Salir de este CV y crear uno nuevo? Los cambios sin guardar se perderán.')) {
+      return;
+    }
+
+    resetCV();
+    resetBuilderPreferences();
+    clearCVAccessToken();
   };
 
   return (
@@ -54,6 +71,14 @@ export const BuilderHeader: React.FC = () => {
 
       <div className="flex items-center gap-2">
         <button
+          onClick={() => setIsAccessModalOpen(true)}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 shadow-sm transition hover:bg-blue-100 active:scale-95"
+          title="Cargar CV guardado"
+        >
+          <KeyRound size={15} />
+          <span>Cargar CV</span>
+        </button>
+        <button
           onClick={() => setIsSaveModalOpen(true)}
           className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-1.5 text-xs font-semibold text-emerald-700 shadow-sm transition hover:bg-emerald-100 active:scale-95"
           title="Guardar CV en la base de datos"
@@ -61,6 +86,16 @@ export const BuilderHeader: React.FC = () => {
           <Save size={15} />
           <span>Guardar CV</span>
         </button>
+        {isRecoveredCV && (
+          <button
+            onClick={handleCreateNewCV}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 active:scale-95"
+            title="Salir del CV recuperado y comenzar uno nuevo"
+          >
+            <Plus size={15} />
+            <span>Crear nuevo CV</span>
+          </button>
+        )}
         <button
           onClick={handlePrint}
           className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-sm transition active:scale-95"
@@ -78,6 +113,7 @@ export const BuilderHeader: React.FC = () => {
           onClose={() => setIsSaveModalOpen(false)}
         />
       )}
+      {isAccessModalOpen && <AccessCVModal onClose={() => setIsAccessModalOpen(false)} />}
     </header>
   );
 };

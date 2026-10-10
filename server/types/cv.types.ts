@@ -126,3 +126,12 @@ export interface CreatedCV {
   id: number;
   access_code: number;
 }
+
+export interface CompleteCV extends PublicCV {
+  experiences: ExperienceInput[];
+  education: EducationInput[];
+  skills: SkillInput[];
+  languages: LanguageInput[];
+  projects: ProjectInput[];
+  certifications: CertificationInput[];
+}

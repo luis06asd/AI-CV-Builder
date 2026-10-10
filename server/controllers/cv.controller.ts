@@ -1,10 +1,12 @@
 import type { Request, Response } from 'express';
 import {
+  accessCV,
   createCV,
   deleteCV,
   getCVById,
   updateCV,
 } from '../services/cv.service.js';
+import { createAccessToken } from '../services/access-token.service.js';
 import type { CreateCVInput, UpdateCVInput } from '../types/cv.types.js';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -238,6 +240,46 @@ export const createCVController = async (
 
   const createdCV = await createCV(request.body as unknown as CreateCVInput);
   response.status(201).json(createdCV);
+};
+
+export const accessCVController = async (
+  request: Request,
+  response: Response
+): Promise<void> => {
+  if (!isRecord(request.body)) {
+    response.status(400).json({ error: 'Access code and password are required.' });
+    return;
+  }
+
+  const accessCode = request.body.access_code;
+  const password = request.body.password;
+  const parsedCode =
+    typeof accessCode === 'number'
+      ? accessCode
+      : typeof accessCode === 'string' && /^\d+$/.test(accessCode)
+        ? Number(accessCode)
+        : NaN;
+
+  if (
+    !Number.isSafeInteger(parsedCode) ||
+    parsedCode < 1 ||
+    typeof password !== 'string' ||
+    password.length === 0
+  ) {
+    response.status(400).json({ error: 'Access code and password are required.' });
+    return;
+  }
+
+  const cv = await accessCV(parsedCode, password);
+  if (!cv) {
+    response.status(401).json({ error: 'Invalid access code or password.' });
+    return;
+  }
+
+  response.status(200).json({
+    access_token: createAccessToken(cv.id),
+    cv,
+  });
 };
 
 export const getCVController = async (

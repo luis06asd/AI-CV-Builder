@@ -1,6 +1,6 @@
 import React from 'react';
-import { Check, Copy, KeyRound, X } from 'lucide-react';
-import { createCV } from '../../../api/cvApi';
+import { Check, Copy, KeyRound, Loader2, X } from 'lucide-react';
+import { createCV, updateCV } from '../../../api/cvApi';
 import type { CVData } from '../../../types/cv.types';
 import type { TemplateId } from '../../../types/template.types';
 
@@ -21,17 +21,18 @@ export const SaveCVModal: React.FC<SaveCVModalProps> = ({
   const [error, setError] = React.useState<string | null>(null);
   const [isSaving, setIsSaving] = React.useState(false);
   const [isCopied, setIsCopied] = React.useState(false);
+  const isExistingCV = Number.isSafeInteger(Number(cv.id)) && Number(cv.id) > 0;
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
 
-    if (password.length < 8) {
+    if (!isExistingCV && password.length < 8) {
       setError('La contraseña debe tener al menos 8 caracteres.');
       return;
     }
 
-    if (password !== passwordConfirmation) {
+    if (!isExistingCV && password !== passwordConfirmation) {
       setError('Las contraseñas no coinciden.');
       return;
     }
@@ -44,10 +45,15 @@ export const SaveCVModal: React.FC<SaveCVModalProps> = ({
     setIsSaving(true);
 
     try {
-      const result = await createCV(cv, templateId, password);
-      setAccessCode(result.access_code);
-      setPassword('');
-      setPasswordConfirmation('');
+      if (isExistingCV) {
+        await updateCV(cv, templateId);
+        setAccessCode(0);
+      } else {
+        const result = await createCV(cv, templateId, password);
+        setAccessCode(result.access_code);
+        setPassword('');
+        setPasswordConfirmation('');
+      }
     } catch (requestError) {
       setError(
         requestError instanceof Error
@@ -60,7 +66,7 @@ export const SaveCVModal: React.FC<SaveCVModalProps> = ({
   };
 
   const handleCopy = async () => {
-    if (accessCode === null) return;
+    if (accessCode === null || accessCode === 0) return;
 
     await navigator.clipboard.writeText(String(accessCode));
     setIsCopied(true);
@@ -82,10 +88,10 @@ export const SaveCVModal: React.FC<SaveCVModalProps> = ({
             </div>
             <div>
               <h2 id="save-cv-title" className="text-sm font-bold text-slate-900">
-                Guardar CV
+                {isExistingCV ? 'Guardar cambios' : 'Guardar CV'}
               </h2>
               <p className="text-[11px] text-slate-500">
-                Crea una contraseña para recuperar este CV.
+                {isExistingCV ? 'Guarda los cambios en tu CV recuperado.' : 'Crea una contraseña para recuperar este CV.'}
               </p>
             </div>
           </div>
@@ -103,28 +109,8 @@ export const SaveCVModal: React.FC<SaveCVModalProps> = ({
           <div className="space-y-4 px-5 py-6">
             <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-center">
               <Check size={24} className="mx-auto mb-2 text-emerald-600" />
-              <p className="text-sm font-bold text-emerald-900">CV guardado correctamente</p>
-              <p className="mt-1 text-xs text-emerald-700">
-                Guarda este código para recuperar tu CV posteriormente.
-              </p>
-              <div className="mt-4 flex items-center justify-center gap-2">
-                <code className="rounded-lg bg-white px-4 py-2 text-lg font-bold tracking-widest text-slate-900 shadow-sm">
-                  {accessCode}
-                </code>
-                <button
-                  type="button"
-                  onClick={handleCopy}
-                  className="rounded-lg border border-emerald-300 bg-white p-2 text-emerald-700 transition hover:bg-emerald-100"
-                  title="Copiar código de acceso"
-                >
-                  {isCopied ? <Check size={16} /> : <Copy size={16} />}
-                </button>
-              </div>
-              {isCopied && (
-                <p className="mt-2 text-[11px] font-medium text-emerald-700">
-                  Código copiado
-                </p>
-              )}
+              <p className="text-sm font-bold text-emerald-900">{isExistingCV ? 'Cambios guardados correctamente' : 'CV guardado correctamente'}</p>
+              {!isExistingCV && <><p className="mt-1 text-xs text-emerald-700">Guarda este código para recuperar tu CV posteriormente.</p><div className="mt-4 flex items-center justify-center gap-2"><code className="rounded-lg bg-white px-4 py-2 text-lg font-bold tracking-widest text-slate-900 shadow-sm">{accessCode}</code><button type="button" onClick={handleCopy} className="rounded-lg border border-emerald-300 bg-white p-2 text-emerald-700 transition hover:bg-emerald-100" title="Copiar código de acceso">{isCopied ? <Check size={16} /> : <Copy size={16} />}</button></div>{isCopied && <p className="mt-2 text-[11px] font-medium text-emerald-700">Código copiado</p>}</>}
             </div>
             <button
               type="button"
@@ -136,7 +122,7 @@ export const SaveCVModal: React.FC<SaveCVModalProps> = ({
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4 px-5 py-5">
-            <div>
+            {!isExistingCV && <div>
               <label
                 htmlFor="cv-password"
                 className="mb-1 block text-xs font-semibold text-slate-700"
@@ -154,8 +140,8 @@ export const SaveCVModal: React.FC<SaveCVModalProps> = ({
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                 placeholder="Mínimo 8 caracteres"
               />
-            </div>
-            <div>
+            </div>}
+            {!isExistingCV && <div>
               <label
                 htmlFor="cv-password-confirmation"
                 className="mb-1 block text-xs font-semibold text-slate-700"
@@ -173,7 +159,7 @@ export const SaveCVModal: React.FC<SaveCVModalProps> = ({
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                 placeholder="Repite la contraseña"
               />
-            </div>
+            </div>}
 
             {error && (
               <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
@@ -186,7 +172,8 @@ export const SaveCVModal: React.FC<SaveCVModalProps> = ({
               disabled={isSaving}
               className="w-full rounded-lg bg-emerald-600 px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isSaving ? 'Guardando CV...' : 'Guardar CV'}
+              {isSaving && <Loader2 size={15} className="mr-1 inline animate-spin" />}
+              {isSaving ? (isExistingCV ? 'Guardando cambios...' : 'Guardando CV...') : (isExistingCV ? 'Guardar cambios' : 'Guardar CV')}
             </button>
           </form>
         )}

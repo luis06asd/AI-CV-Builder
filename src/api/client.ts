@@ -9,10 +9,12 @@ export const apiRequest = async <T>(
   path: string,
   options: RequestInit = {}
 ): Promise<T> => {
+  const accessToken = sessionStorage.getItem('ai_cv_builder_access_token');
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       ...options.headers,
     },
   });

@@ -5,6 +5,7 @@ import { pool } from '../config/database.js';
 import type {
   CreateCVInput,
   CreatedCV,
+  CompleteCV,
   PublicCV,
   CVSectionsInput,
   UpdateCVInput,
@@ -15,6 +16,11 @@ const MAX_ACCESS_CODE_ATTEMPTS = 5;
 
 interface CVRow extends RowDataPacket, PublicCV {
   password_hash: string;
+}
+
+interface SectionRow extends RowDataPacket {
+  id: number;
+  [key: string]: unknown;
 }
 
 const publicCVColumns = `
@@ -288,6 +294,121 @@ export const getCVById = async (id: number): Promise<PublicCV | null> => {
   );
 
   return rows[0] ?? null;
+};
+
+const toEditorDate = (value: unknown): string | undefined => {
+  if (value === null || value === undefined) return undefined;
+  const text = String(value);
+  return /^\d{4}-\d{2}-\d{2}/.test(text) ? text.slice(0, 7) : text;
+};
+
+const parseBulletPoints = (value: unknown): string[] => {
+  if (Array.isArray(value)) return value.filter((item): item is string => typeof item === 'string');
+  if (typeof value !== 'string') return [];
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return Array.isArray(parsed)
+      ? parsed.filter((item): item is string => typeof item === 'string')
+      : [];
+  } catch {
+    return [];
+  }
+};
+
+const getCompleteCVById = async (id: number): Promise<CompleteCV | null> => {
+  const cv = await getCVById(id);
+  if (!cv) return null;
+
+  const [[experiences], [education], [skills], [languages], [projects], [certifications]] =
+    await Promise.all([
+      pool.execute<SectionRow[]>(
+        'SELECT id, company, role, location, start_date, end_date, is_current, description, bullet_points FROM experiences WHERE cv_id = ? ORDER BY id',
+        [id]
+      ),
+      pool.execute<SectionRow[]>(
+        'SELECT id, institution, degree, field_of_study, location, start_date, end_date, is_current, gpa_or_honors, description FROM education WHERE cv_id = ? ORDER BY id',
+        [id]
+      ),
+      pool.execute<SectionRow[]>('SELECT id, name, level FROM skills WHERE cv_id = ? ORDER BY id', [id]),
+      pool.execute<SectionRow[]>(
+        'SELECT id, name, proficiency FROM languages WHERE cv_id = ? ORDER BY id',
+        [id]
+      ),
+      pool.execute<SectionRow[]>(
+        'SELECT id, name, description, technologies, project_url, start_date, end_date FROM projects WHERE cv_id = ? ORDER BY id',
+        [id]
+      ),
+      pool.execute<SectionRow[]>(
+        'SELECT id, name, issuing_organization, issue_date, expiration_date, credential_id, credential_url FROM certifications WHERE cv_id = ? ORDER BY id',
+        [id]
+      ),
+    ]);
+
+  return {
+    ...cv,
+    experiences: experiences.map((item) => ({
+      company: String(item.company ?? ''),
+      role: String(item.role ?? ''),
+      location: item.location as string | null,
+      startDate: toEditorDate(item.start_date) ?? '',
+      endDate: toEditorDate(item.end_date),
+      isCurrent: Boolean(item.is_current),
+      description: item.description as string | null,
+      bulletPoints: parseBulletPoints(item.bullet_points),
+    })),
+    education: education.map((item) => ({
+      institution: String(item.institution ?? ''),
+      degree: String(item.degree ?? ''),
+      fieldOfStudy: item.field_of_study as string | null,
+      location: item.location as string | null,
+      startDate: toEditorDate(item.start_date) ?? '',
+      endDate: toEditorDate(item.end_date),
+      isCurrent: Boolean(item.is_current),
+      gpaOrHonors: item.gpa_or_honors as string | null,
+      description: item.description as string | null,
+    })),
+    skills: skills.map((item) => ({
+      name: String(item.name ?? ''),
+      level: item.level as string | null,
+    })),
+    languages: languages.map((item) => ({
+      name: String(item.name ?? ''),
+      proficiency: String(item.proficiency ?? ''),
+    })),
+    projects: projects.map((item) => ({
+      name: String(item.name ?? ''),
+      description: item.description as string | null,
+      technologies: typeof item.technologies === 'string'
+        ? item.technologies.split(',').map((technology) => technology.trim()).filter(Boolean)
+        : [],
+      link: item.project_url as string | null,
+      startDate: toEditorDate(item.start_date),
+      endDate: toEditorDate(item.end_date),
+    })),
+    certifications: certifications.map((item) => ({
+      name: String(item.name ?? ''),
+      issuer: item.issuing_organization as string | null,
+      issueDate: toEditorDate(item.issue_date),
+      expiryDate: toEditorDate(item.expiration_date),
+      credentialId: item.credential_id as string | null,
+      credentialUrl: item.credential_url as string | null,
+    })),
+  };
+};
+
+export const accessCV = async (
+  accessCode: number,
+  password: string
+): Promise<CompleteCV | null> => {
+  const [rows] = await pool.execute<CVRow[]>(
+    `SELECT ${publicCVColumns}, password_hash FROM cvs WHERE access_code = ? LIMIT 1`,
+    [accessCode]
+  );
+  const row = rows[0];
+  if (!row || !(await bcrypt.compare(password, row.password_hash))) return null;
+
+  const cv = await getCompleteCVById(row.id);
+  return cv;
 };
 
 const updateCVWithoutPassword = async (

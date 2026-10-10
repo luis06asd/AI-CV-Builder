@@ -28,6 +28,38 @@ export interface CreateCVResponse {
   access_code: number;
 }
 
+export interface AccessCVResponse {
+  access_token: string;
+  cv: {
+    id: number;
+    access_code: number;
+    title: string | null;
+    full_name: string | null;
+    job_title: string | null;
+    email: string | null;
+    phone: string | null;
+    location: string | null;
+    website: string | null;
+    linkedin: string | null;
+    github: string | null;
+    summary: string | null;
+    avatar_url: string | null;
+    template: string | null;
+    created_at: string;
+    updated_at: string;
+    experiences: Array<Record<string, unknown>>;
+    education: Array<Record<string, unknown>>;
+    skills: Array<Record<string, unknown>>;
+    languages: Array<Record<string, unknown>>;
+    projects: Array<Record<string, unknown>>;
+    certifications: Array<Record<string, unknown>>;
+  };
+}
+
+export interface UpdateCVRequest extends Omit<CreateCVRequest, 'password'> {
+  password?: string;
+}
+
 export interface APIErrorResponse {
   error?: string;
 }
@@ -57,3 +89,11 @@ export const toCreateCVRequest = (
   projects: cv.projects,
   certifications: cv.certifications,
 });
+
+export const toUpdateCVRequest = (
+  cv: CVData,
+  template: TemplateId
+): UpdateCVRequest => {
+  const { password: _password, ...request } = toCreateCVRequest(cv, template, '');
+  return request;
+};

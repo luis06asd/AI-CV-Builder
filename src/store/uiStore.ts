@@ -10,6 +10,7 @@ export interface UIStoreState {
   themeConfig: ThemeConfig;
   setSelectedTemplate: (id: TemplateId) => void;
   updateThemeConfig: (config: Partial<ThemeConfig>) => void;
+  resetBuilderPreferences: () => void;
 
   // Navegación en el editor
   activeTab: BuilderActiveTab;
@@ -36,6 +37,15 @@ export const useUIStore = create<UIStoreState>()(
         set((state) => ({
           themeConfig: { ...state.themeConfig, ...config },
         })),
+      resetBuilderPreferences: () =>
+        set({
+          selectedTemplateId: 'classic-ats',
+          themeConfig: DEFAULT_THEME_CONFIG,
+          activeTab: 'personal',
+          previewZoom: 0.85,
+          isJobMatchModalOpen: false,
+          isAiLoading: false,
+        }),
 
       activeTab: 'personal',
       setActiveTab: (tab) => set({ activeTab: tab }),

@@ -60,6 +60,7 @@ export interface CVStoreState {
   // Acciones globales
   loadSampleData: () => void;
   resetCV: () => void;
+  loadCV: (cv: CVData) => void;
 }
 
 export const useCVStore = create<CVStoreState>()(
@@ -368,6 +369,7 @@ export const useCVStore = create<CVStoreState>()(
             updatedAt: new Date().toISOString(),
           },
         })),
+      loadCV: (cv) => set({ cv }),
     }),
     {
       name: 'ai_cv_builder_cv_data',

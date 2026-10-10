@@ -9,9 +9,14 @@ import {
   ArrowRight,
   Layout,
   Cpu,
+  KeyRound,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { AccessCVModal } from '../builder/components/AccessCVModal';
 
 export const LandingPage: React.FC = () => {
+  const navigate = useNavigate();
+  const [isAccessModalOpen, setIsAccessModalOpen] = React.useState(false);
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col selection:bg-blue-600 selection:text-white">
       {/* NAVBAR */}
@@ -33,6 +38,14 @@ export const LandingPage: React.FC = () => {
             <span>Crear mi CV</span>
             <ArrowRight size={15} />
           </Link>
+          <button
+            type="button"
+            onClick={() => setIsAccessModalOpen(true)}
+            className="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 sm:text-sm"
+          >
+            <KeyRound size={15} />
+            <span>Cargar CV guardado</span>
+          </button>
         </div>
       </nav>
 
@@ -152,6 +165,12 @@ export const LandingPage: React.FC = () => {
       <footer className="mt-auto border-t border-slate-200 bg-white py-6 px-6 text-center text-xs text-slate-500">
         <p>© {new Date().getFullYear()} AI CV Builder. Desarrollado con React, TypeScript y Tailwind CSS.</p>
       </footer>
+      {isAccessModalOpen && (
+        <AccessCVModal
+          onClose={() => setIsAccessModalOpen(false)}
+          onLoaded={() => navigate('/builder')}
+        />
+      )}
     </div>
   );
 };
